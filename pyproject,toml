@@ -1,0 +1,15 @@
+[build-system]
+requires = ["setuptools"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "assetpricinghomework"
+version = "0.0.0"
+dependencies = [
+    'polars',
+    'polars-ols',
+    'loguru',
+    'pre-commit',
+]
+
+requires-python = ">=3.11"
