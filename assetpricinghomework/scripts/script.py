@@ -2,6 +2,7 @@ import warnings
 warnings.filterwarnings('ignore')
 import polars as pl
 from assetpricinghomework.factors.factors_api import Factors
+from assetpricinghomework.backtest.backtest import vector_backtest
 
 
 if __name__ == "__main__":
@@ -21,10 +22,17 @@ if __name__ == "__main__":
         "trade_date",
     )
     # calculate factors
-    factors = fa.factor_calculate(
+    factors,factors_name = fa.factor_calculate(
         kline=kline,
     )
-    check = factors.filter(
-        pl.col("trade_date")==pl.col("trade_date").max()
-    ).to_pandas()
-    print()
+    # uss pred
+    pred = factors.with_columns(
+        pred=pl.col("size")*-1
+    )
+    # backtest & analysis
+    vector_backtest(
+        pred="pred",
+        kline=pred,
+        num_symbol=300,
+        strategy_name="small_size"
+    )

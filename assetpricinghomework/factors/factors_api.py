@@ -1,6 +1,8 @@
 import warnings
 
 warnings.filterwarnings('ignore')
+from loguru import logger
+import time
 import polars as pl
 from assetpricinghomework.factors.libs import factors_libs
 
@@ -60,6 +62,7 @@ class Factors:
             self,
             kline:pl.DataFrame
     ):
+        t = time.time()
         if "rtn" in kline.columns:
             pass
         else:
@@ -73,4 +76,7 @@ class Factors:
         ).drop_nulls()
         factors = self._winsorize(factors)
         factors = self._zscore(factors)
-        return factors
+        logger.success(
+            f"factors calculate success, time-cost:{time.time() - t:.2f}s, num-factors:{len(self.factor_name)}"
+        )
+        return factors,self.factor_name
