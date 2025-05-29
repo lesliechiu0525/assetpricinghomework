@@ -4,13 +4,14 @@ import polars as pl
 from assetpricinghomework.factors.factors_api import Factors
 from assetpricinghomework.backtest.backtest import vector_backtest
 import tushare as ts
+from loguru import logger
 
 
 def kline_process(
         kline_loc:str,
         index_loc:str,
         basic_loc:str,
-        index_filter:bool
+        index_filter:bool,
 ):
     # load kline & basic
     stock_cols = [f"{i}" for i in range(800)]
@@ -53,6 +54,38 @@ def kline_process(
     )
     return kline
 
+def filter_pool(
+        mode:str,
+        factors:pl.DataFrame
+):
+    # 复刻第五组的初步筛选
+    factors = factors.sort(
+        "trade_date",
+    ).with_columns(
+        y=(pl.col("close").shift(-1) / pl.col("close") - 1).over("ts_code")
+    )
+    if mode == "big":
+        factors = factors.filter(
+            pl.col("turnover_rate_f") > pl.col("turnover_rate").quantile(0.2).over("trade_date")
+        ).with_columns(
+            mv_rank=pl.col("total_mv").rank().over("trade_date")
+        ).filter(
+            pl.col("mv_rank")<=300 # 这里使用的是300 也可以修改成100
+        )
+        logger.info(f"复刻第五组大盘股池")
+    if mode == "small":
+        factors = factors.filter(
+            pl.col("turnover_rate_f") > pl.col("turnover_rate").quantile(0.2).over("trade_date")
+        ).with_columns(
+            mv_rank=pl.col("total_mv").rank(descending=False).over("trade_date")
+        ).filter(
+            pl.col("mv_rank") <= 300
+        )
+        logger.info(f"复刻第五组小盘股池")
+    else:
+        pass
+    return factors
+
 if __name__ == "__main__":
     from assetpricinghomework.scripts.config import (
         factors_config, index_filter
@@ -73,9 +106,14 @@ if __name__ == "__main__":
     factors,factors_name = fa.factor_calculate(
         kline=kline,
     )
-    # uss pred
+    # 可以使用第五组的大小盘初步股池
+    factors = filter_pool(
+        mode="small",
+        factors=factors
+    )
+    # use pred
     pred = factors.with_columns(
-        pred=pl.col("amihud")+pl.col("size")*-1
+        pred=pl.col("amihud")
     )
     # backtest & analysis
     vector_backtest(

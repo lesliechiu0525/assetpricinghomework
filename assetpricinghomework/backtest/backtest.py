@@ -39,8 +39,6 @@ def vector_backtest(
     start_date,end_date = kline['trade_date'].min(),kline['trade_date'].max()
     result = kline.sort(
         "trade_date"
-    ).with_columns(
-        y=(pl.col("close").shift(-1)/pl.col("close")-1).over("ts_code")
     ).drop_nulls().group_by(
         "trade_date",
     ).agg(
