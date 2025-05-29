@@ -1,4 +1,5 @@
-token = "e1fd9ecc25f7f6457b771f42f1b10c9f7f7f01c5d03bc153a651e3cd"
+import polars as pl
+token = "your_token"
 factors_config = [
     "momentum",
     "reverse",
@@ -7,3 +8,4 @@ factors_config = [
     # "dividend",
     "amihud"
 ]
+index_filter = False # 如果这里写False则默认不适用中证800
