@@ -67,13 +67,21 @@ class Factors:
             pass
         else:
             kline = kline.with_columns(
-                rtn=(pl.col("close")/pl.col("close").shift(1)-1).over(self.symbol)
-            ).drop_nulls()
+                rtn=(pl.col("close")/pl.col("pre_close")-1)
+            )
+
         factors = kline.sort(
             self.time
         ).with_columns(
             self.func_list
-        ).drop_nulls()
+        ).sort(
+            "trade_date"
+        ).with_columns(
+            [
+                pl.col(c).fill_null(strategy="forward").over(self.time)
+                for c in self.factor_name
+            ]
+        )
         factors = self._winsorize(factors)
         factors = self._zscore(factors)
         logger.success(

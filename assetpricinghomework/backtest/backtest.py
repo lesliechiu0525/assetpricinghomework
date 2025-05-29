@@ -4,11 +4,10 @@ import numpy as np
 import polars as pl
 import matplotlib.pyplot as plt
 from loguru import logger
-from pandas.core.computation.common import result_type_many
-from sqlalchemy.dialects.postgresql import plainto_tsquery
+
 
 plt.rcParams["font.family"] = "SimHei"
-plt.rcParams["font.sans-serif"] = ["Arial"]
+plt.rcParams["font.serif"] = ["Times New Roman"]
 plt.rcParams["axes.unicode_minus"] = False
 plt.style.use('seaborn-v0_8')
 
@@ -42,24 +41,31 @@ def vector_backtest(
         "trade_date"
     ).with_columns(
         y=(pl.col("close").shift(-1)/pl.col("close")-1).over("ts_code")
-    ).group_by(
+    ).drop_nulls().group_by(
         "trade_date",
     ).agg(
         strategy=pl.col("y").sort_by(pred,descending=True).head(num_symbol).mean(),
-        benchmark=pl.col("y").mean()
+        benchmark=(pl.col("y")*pl.col("total_mv")).sum()/pl.col("total_mv").sum(),# 总市值加权
     ).sort(
         "trade_date"
+    ).with_columns(
+        er=pl.col("strategy")-pl.col("benchmark"),
     )
     # plot
     plt.plot(
         result["trade_date"],
-        (result["strategy"]+1).cum_prod(),
+        result["strategy"].cum_sum(),
         label="strategy"
     )
     plt.plot(
         result["trade_date"],
-        (result["benchmark"]+1).cum_prod(),
+        result["benchmark"].cum_sum(),
         label="benchmark"
+    )
+    plt.plot(
+        result["trade_date"],
+        result["er"].cum_sum(),
+        label="excess_return"
     )
     plt.ylabel(
         "cumulative return"
