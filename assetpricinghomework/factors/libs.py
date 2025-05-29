@@ -1,6 +1,5 @@
 import polars as pl
-from types import FunctionType
-libs = {
+factors_libs = {
     "momentum":pl.col("rtn").rolling_sum(252)-pl.col("rtn").rolling_sum(25*3),
     "reverse":pl.col("rtn").rolling_sum(25),
     "size":pl.col("circ_mv").log(),
