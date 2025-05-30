@@ -68,11 +68,11 @@ def filter_pool(
         factors = factors.filter(
             pl.col("turnover_rate_f") > pl.col("turnover_rate").quantile(0.2).over("trade_date")
         ).with_columns(
-            mv_rank=pl.col("total_mv").rank().over("trade_date")
+            mv_rank=pl.col("total_mv").rank(descending=True).over("trade_date")
         ).filter(
             pl.col("mv_rank")<=300 # 这里使用的是300 也可以修改成100
         )
-        logger.info(f"复刻第五组大盘股池")
+        logger.info(f"大盘股池")
     if mode == "small":
         factors = factors.filter(
             pl.col("turnover_rate_f") > pl.col("turnover_rate").quantile(0.2).over("trade_date")
@@ -81,7 +81,39 @@ def filter_pool(
         ).filter(
             pl.col("mv_rank") <= 300
         )
-        logger.info(f"复刻第五组小盘股池")
+        logger.info(f"小盘股池")
+    if mode == "value":
+        factors = factors.filter(
+            pl.col("turnover_rate_f") > pl.col("turnover_rate").quantile(0.2).over("trade_date")
+        ).with_columns(
+            value_rank=pl.col("bm").rank(descending=True).over("trade_date")
+        ).filter(
+            pl.col("value_rank") <= 300
+        )
+        logger.info(f"价值股池")
+    if mode == "growth":
+        factors = factors.filter(
+            pl.col("turnover_rate_f") > pl.col("turnover_rate").quantile(0.2).over("trade_date")
+        ).sort(
+            "trade_date",
+        ).with_columns(
+            growth=pl.when(
+                pl.col("roe")!=pl.col("roe").shift(1), # 使用roe的增速代表成长
+            ).then(
+                pl.col("roe")/pl.col("roe").shift(-1)-1
+            ).otherwise(
+                None
+            ).fill_null(
+                strategy="forward"
+            ).over(
+                "ts_code",
+            )
+        ).with_columns(
+            growth_rank=pl.col("growth").rank(descending=False).over("trade_date")
+        ).filter(
+            pl.col("growth_rank") <= 300
+        )
+        logger.info(f"成长股池")
     else:
         pass
     return factors
@@ -108,7 +140,7 @@ if __name__ == "__main__":
     )
     # 可以使用第五组的大小盘初步股池
     factors = filter_pool(
-        mode="small",
+        mode="growth",
         factors=factors
     )
     # use pred
