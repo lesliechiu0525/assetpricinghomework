@@ -22,10 +22,15 @@ def rtn_analysis(
         dd=pl.col("cr")/pl.col("cr").cum_max()-1
     )
     avg,std = data[col].mean(),data[col].std()
+    if col != "benchmark":
+        e_avg,e_std = data["er"].mean(),data["er"].std()
+        icir = e_avg/e_std * np.sqrt(252)
+    else:
+        icir = 0
     ar = avg * 252
     sr = avg/std * np.sqrt(252)
     logger.info(
-        f"strategy:{strategy_name}, ar:{ar:.2%}, sr:{sr:.2f},mdd:{abs(data['dd'].min()):.2%},std:{std:.2%}"
+        f"strategy:{strategy_name}, date-count:{len(data)},ar:{ar:.2%},sr:{sr:.2f},mdd:{abs(data['dd'].min()):.2%},std:{std*np.sqrt(252):.2%},icir:{icir:.2f}"
     )
 
 
@@ -44,6 +49,79 @@ def vector_backtest(
     ).agg(
         strategy=pl.col("y").sort_by(pred,descending=True).head(num_symbol).mean(),
         benchmark=(pl.col("y")*pl.col("total_mv")).sum()/pl.col("total_mv").sum(),# 总市值加权
+    ).sort(
+        "trade_date"
+    ).with_columns(
+        er=pl.col("strategy")-pl.col("benchmark"),
+    )
+    # plot
+    plt.plot(
+        result["trade_date"],
+        result["strategy"].cum_sum(),
+        label="strategy"
+    )
+    plt.plot(
+        result["trade_date"],
+        result["benchmark"].cum_sum(),
+        label="benchmark"
+    )
+    plt.plot(
+        result["trade_date"],
+        result["er"].cum_sum(),
+        label="excess_return"
+    )
+    plt.ylabel(
+        "cumulative return"
+    )
+    plt.xlabel(
+        "date"
+    )
+    plt.legend()
+    plt.title(
+        f"{strategy_name} strategy performance"
+    )
+    plt.savefig(f"strategy_return_performance")
+    # analysis
+    rtn_analysis(
+        data=result,
+        col="strategy",
+        strategy_name=strategy_name,
+    )
+    rtn_analysis(
+        data=result,
+        col="benchmark",
+        strategy_name="benchmark",
+    )
+    # write data
+    result.write_parquet("static/result.parquet")
+    logger.success(
+        f"vector backtest from {start_date} to {end_date}, time-cost:{time.time()-t:.2f}s"
+    )
+
+
+def loop_backtest(
+        kline:pl.DataFrame,
+        strategy_name:str,
+        first_step:dict,
+        second_step:dict,
+        third_step:dict,
+):
+    t = time.time()
+    start_date,end_date = kline['trade_date'].min(),kline['trade_date'].max()
+    result = []
+    for date,cs in kline.group_by("trade_date",maintain_order=True):
+        pool = cs.sort(first_step["factor"],descending=first_step["descending"]).head(first_step["num_symbol"])
+        pool = pool.sort(second_step["factor"], descending=second_step["descending"]).head(second_step["num_symbol"])
+        pool = pool.sort(third_step["factor"], descending=third_step["descending"]).head(third_step["num_symbol"])
+        result.append(
+            {
+                "trade_date": date[0],
+                "strategy": pool['y'].mean(),
+                "benchmark": cs['y'].mean(),
+            }
+        )
+    result = pl.DataFrame(
+        result
     ).sort(
         "trade_date"
     ).with_columns(

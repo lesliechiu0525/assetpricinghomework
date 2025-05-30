@@ -5,7 +5,7 @@ factors_config = [
     "reverse",
     "size",
     "turnover",
-    # "dividend",
+    "dividend",
     "amihud",
     "bm", # 默认这里需要加入bm价值因子和roe因子
     "roe"

@@ -13,5 +13,5 @@ factors_libs = {
     ),
     "dividend":pl.col("dv_ratio"),
     "roe":pl.col("pb")/pl.col("pe"),
-    "amihud":pl.col("rtn").abs()/pl.col("amount")
+    "amihud":pl.col("rtn").abs()/pl.col("amount"),
 }
