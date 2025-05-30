@@ -4,7 +4,7 @@ import numpy as np
 import polars as pl
 import matplotlib.pyplot as plt
 from loguru import logger
-
+from numba.core.utils import benchmark
 
 plt.rcParams["font.family"] = "SimHei"
 plt.rcParams["font.serif"] = ["Times New Roman"]
@@ -101,23 +101,38 @@ def vector_backtest(
 
 def loop_backtest(
         kline:pl.DataFrame,
+        index_rtn:pl.DataFrame,
         strategy_name:str,
         first_step:dict,
         second_step:dict,
         third_step:dict,
+        index_filter:bool=False,
 ):
     t = time.time()
+    kline = kline.join(
+        index_rtn.with_columns(
+            trade_date=pl.col("date").cast(pl.Date),
+            index_rtn=pl.col("rtn")/100
+        ).select(
+            ["trade_date","index_rtn"]
+        ),
+        on="trade_date",
+    )
     start_date,end_date = kline['trade_date'].min(),kline['trade_date'].max()
     result = []
     for date,cs in kline.group_by("trade_date",maintain_order=True):
         pool = cs.sort(first_step["factor"],descending=first_step["descending"]).head(first_step["num_symbol"])
         pool = pool.sort(second_step["factor"], descending=second_step["descending"]).head(second_step["num_symbol"])
         pool = pool.sort(third_step["factor"], descending=third_step["descending"]).head(third_step["num_symbol"])
+        if index_filter:
+            benchmark_rtn = pool['index_rtn'].mean()
+        else:
+            benchmark_rtn = cs['y'].mean()
         result.append(
             {
                 "trade_date": date[0],
                 "strategy": pool['y'].mean(),
-                "benchmark": cs['y'].mean(),
+                "benchmark": benchmark_rtn,
             }
         )
     result = pl.DataFrame(
@@ -165,6 +180,8 @@ def loop_backtest(
         col="benchmark",
         strategy_name="benchmark",
     )
+    # write data
+    result.write_parquet("static/result.parquet")
     logger.success(
-        f"vector backtest from {start_date} to {end_date}, time-cost:{time.time()-t:.2f}s"
+        f"multi-factors third-step  backtest from {start_date} to {end_date}, time-cost:{time.time()-t:.2f}s"
     )

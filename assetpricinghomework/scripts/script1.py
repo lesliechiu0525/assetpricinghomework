@@ -146,6 +146,7 @@ if __name__ == "__main__":
     # backtest & analysis
     loop_backtest(
         kline=factors,
+        index_rtn=pl.read_parquet("static/zz800.parquet"), # 这里需要传入index的收益率作为benchmark
         strategy_name="multi-factors",
         first_step={
             "factor":"amihud", # 示例 使用amihud因子, 降序排列（意思是选择大的N个股票）, 选择股票个数
