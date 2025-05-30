@@ -17,7 +17,7 @@ class Factors:
         self.func_list = [
             self.libs[key].over(self.symbol).alias(key) for key in config
         ] + [
-
+            pl.col("trade_date").cum_count().over(self.symbol).alias("date_count"),
         ]
         self.factor_name = [
             key for key in config
@@ -74,13 +74,17 @@ class Factors:
             self.time
         ).with_columns(
             self.func_list
+        ).filter(
+            pl.col("date_count")>252 # 剔除新币
         ).sort(
-            "trade_date"
+            self.time
         ).with_columns(
             [
-                pl.col(c).fill_null(strategy="forward").over(self.time)
+                pl.col(c).fill_null(strategy="forward").over(self.symbol)
                 for c in self.factor_name
             ]
+        ).drop_nulls(
+            subset=self.factor_name
         )
         factors = self._winsorize(factors)
         factors = self._zscore(factors)

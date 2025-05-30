@@ -140,7 +140,7 @@ if __name__ == "__main__":
     )
     # 可以使用第五组的大小盘初步股池
     factors = filter_pool(
-        mode="growth",
+        mode="small",
         factors=factors
     )
     # use pred
