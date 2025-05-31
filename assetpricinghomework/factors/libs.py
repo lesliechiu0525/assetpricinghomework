@@ -14,4 +14,5 @@ factors_libs = {
     "dividend":pl.col("dv_ratio"),
     "roe":pl.col("pb")/pl.col("pe"),
     "amihud":pl.col("rtn").abs()/pl.col("amount"),
+    "test":pl.col("F050101B")+2*pl.col("pe")-pl.col("rtn") # 随便乱写一个试用csmar字段的测试因子
 }

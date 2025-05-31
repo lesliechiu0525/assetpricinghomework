@@ -4,6 +4,7 @@ import polars as pl
 from assetpricinghomework.factors.factors_api import Factors
 from assetpricinghomework.backtest.backtest import vector_backtest
 import tushare as ts
+from assetpricinghomework.scripts.datajoin import data_join
 from loguru import logger
 
 
@@ -132,6 +133,12 @@ if __name__ == "__main__":
         index_loc="static/index.parquet",
         basic_loc="static/basic.parquet",
         index_filter=index_filter
+    )
+
+    # 这里可以试用datajoin来用csmar数据扩展字段
+    kline = data_join(
+        kline=kline,
+        join_data="static/FI_T5.csv"
     )
 
     # calculate factors

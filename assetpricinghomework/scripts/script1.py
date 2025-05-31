@@ -3,6 +3,7 @@ warnings.filterwarnings('ignore')
 import polars as pl
 from assetpricinghomework.factors.factors_api import Factors
 from assetpricinghomework.backtest.backtest import vector_backtest, loop_backtest
+from assetpricinghomework.scripts.datajoin import data_join
 import tushare as ts
 from loguru import logger
 
@@ -134,6 +135,13 @@ if __name__ == "__main__":
         index_filter=index_filter
     )
 
+    # 这里可以试用datajoin来用csmar数据扩展字段
+    kline = data_join(
+        kline=kline,
+        join_data="static/FI_T5.csv"
+    )
+
+
     # calculate factors
     factors,factors_name = fa.factor_calculate(
         kline=kline,
@@ -147,6 +155,7 @@ if __name__ == "__main__":
     loop_backtest(
         kline=factors,
         index_rtn=pl.read_parquet("static/zz800.parquet"), # 这里需要传入index的收益率作为benchmark
+        index_filter=True, # 这里试用指数作为benchmark
         strategy_name="multi-factors",
         first_step={
             "factor":"amihud", # 示例 使用amihud因子, 降序排列（意思是选择大的N个股票）, 选择股票个数
@@ -159,7 +168,7 @@ if __name__ == "__main__":
             "num_symbol": 50,
         },
         third_step={
-            "factor": "momentum",
+            "factor": "test", # 试用了包含csmar字段的测试因子
             "descending": True,
             "num_symbol": 10,
         },
