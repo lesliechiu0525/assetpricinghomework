@@ -37,7 +37,7 @@ def kline_process(
             index_rtn_loc
         ).with_columns(
             trade_date=pl.col("date").cast(pl.Date),
-            index_rtn=pl.col("rtn")/100
+            mkt_rtn=pl.col("rtn")/100
         ).select(
             ["trade_date","index_rtn"]
         ),
@@ -157,13 +157,13 @@ if __name__ == "__main__":
     # calculate factors
     factors,factors_name = fa.factor_calculate(
         kline=kline,
+    ).with_columns( # 这里可以合成因子
+        test2=pl.col("test")+pl.col("pb") # 合成多因子 这里将test和pb的z-score加起来
     )
     # 可以使用第五组的大小盘初步股池
     factors = filter_pool(
         mode="small",
         factors=factors
-    ).with_columns( # 这里可以合成因子
-        test2=pl.col("test")+pl.col("pb") # 合成多因子 这里将test和pb的z-score加起来
     )
     # backtest & analysis
     loop_backtest(
