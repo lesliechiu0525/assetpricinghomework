@@ -12,6 +12,7 @@ def kline_process(
         kline_loc:str,
         index_loc:str,
         basic_loc:str,
+        index_rtn_loc:str,
         index_filter:bool,
 ):
     # load kline & basic
@@ -31,6 +32,16 @@ def kline_process(
     )
     kline = pl.read_parquet(kline_loc).with_columns(
         trade_date=pl.col("trade_date").str.to_date(format="%Y%m%d"),
+    ).join(
+        pl.read_parquet(
+            index_rtn_loc
+        ).with_columns(
+            trade_date=pl.col("date").cast(pl.Date),
+            index_rtn=pl.col("rtn")/100
+        ).select(
+            ["trade_date","index_rtn"]
+        ),
+        on="trade_date",
     )
     if index_filter:
         pass
@@ -132,6 +143,7 @@ if __name__ == "__main__":
         kline_loc="static/kline.parquet", # 要确认把数据正确放在了static文件夹里面
         index_loc="static/index.parquet",
         basic_loc="static/basic.parquet",
+        index_rtn_loc="static/zz800.parquet",
         index_filter=index_filter
     )
 
@@ -150,6 +162,8 @@ if __name__ == "__main__":
     factors = filter_pool(
         mode="small",
         factors=factors
+    ).with_columns( # 这里可以合成因子
+        test2=pl.col("test")+pl.col("pb") # 合成多因子 这里将test和pb的z-score加起来
     )
     # backtest & analysis
     loop_backtest(
@@ -168,7 +182,7 @@ if __name__ == "__main__":
             "num_symbol": 50,
         },
         third_step={
-            "factor": "test", # 试用了包含csmar字段的测试因子
+            "factor": "test2", # 试用了包含csmar字段的测试因子
             "descending": True,
             "num_symbol": 10,
         },
