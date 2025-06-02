@@ -4,7 +4,6 @@ import numpy as np
 import polars as pl
 import matplotlib.pyplot as plt
 from loguru import logger
-from numba.core.utils import benchmark
 
 plt.rcParams["font.family"] = "SimHei"
 plt.rcParams["font.serif"] = ["Times New Roman"]
