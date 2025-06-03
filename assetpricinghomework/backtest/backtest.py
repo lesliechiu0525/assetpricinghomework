@@ -37,6 +37,8 @@ def vector_backtest(
         pred:str,
         kline:pl.DataFrame,
         strategy_name:str,
+        index_rtn: pl.DataFrame,
+        index_filter=True,
         num_symbol:int=100,
 ):
     t = time.time()
@@ -52,7 +54,19 @@ def vector_backtest(
         "trade_date"
     ).with_columns(
         er=pl.col("strategy")-pl.col("benchmark"),
+    ).join(
+        index_rtn.with_columns(
+            trade_date=pl.col("date").cast(pl.Date),
+            index_rtn=pl.col("rtn")/100
+        ).select(
+            ["trade_date","index_rtn"]
+        ),
+        on="trade_date",
     )
+    if index_filter:
+        result = result.with_columns(
+            benchmark=pl.col("index_rtn"),
+        )
     # plot
     plt.plot(
         result["trade_date"],

@@ -159,5 +159,7 @@ if __name__ == "__main__":
         pred="pred",
         kline=pred,
         num_symbol=100,
-        strategy_name="amihud"
+        strategy_name="amihud",
+        index_rtn=pl.read_parquet("static/zz800.parquet"),  # 这里需要传入index的收益率作为benchmark
+        index_filter=True,  # 这里试用指数作为benchmark
     )
