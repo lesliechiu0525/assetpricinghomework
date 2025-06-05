@@ -27,7 +27,7 @@ def rtn_analysis(
     else:
         icir = 0
     cr = data['cr'].to_list()[-2]
-    ar = np.power(np.power(cr,1/len(data)),252)
+    ar = np.power(np.power(cr,1/len(data)),252)-1
     sr = avg/std * np.sqrt(252)
     logger.info(
         f"strategy:{strategy_name}, cr:{cr:.2%},date-count:{len(data)},ar:{ar:.2%},sr:{sr:.2f},mdd:{abs(data['dd'].min()):.2%},std:{std*np.sqrt(252):.2%},icir:{icir:.2f}"
