@@ -26,10 +26,11 @@ def rtn_analysis(
         icir = e_avg/e_std * np.sqrt(252)
     else:
         icir = 0
-    ar = avg * 252
+    cr = data['cr'].to_list()[-2]
+    ar = np.power(np.power(cr,1/len(data)),252)
     sr = avg/std * np.sqrt(252)
     logger.info(
-        f"strategy:{strategy_name}, date-count:{len(data)},ar:{ar:.2%},sr:{sr:.2f},mdd:{abs(data['dd'].min()):.2%},std:{std*np.sqrt(252):.2%},icir:{icir:.2f}"
+        f"strategy:{strategy_name}, cr:{cr:.2%},date-count:{len(data)},ar:{ar:.2%},sr:{sr:.2f},mdd:{abs(data['dd'].min()):.2%},std:{std*np.sqrt(252):.2%},icir:{icir:.2f}"
     )
 
 
@@ -70,17 +71,17 @@ def vector_backtest(
     # plot
     plt.plot(
         result["trade_date"],
-        result["strategy"].cum_sum(),
+        (result["strategy"]+1).cum_prod(),
         label="strategy"
     )
     plt.plot(
         result["trade_date"],
-        result["benchmark"].cum_sum(),
+        (result["benchmark"]+1).cum_prod(),
         label="benchmark"
     )
     plt.plot(
         result["trade_date"],
-        result["er"].cum_sum(),
+        (result["er"]+1).cum_prod(),
         label="excess_return"
     )
     plt.ylabel(
@@ -158,17 +159,17 @@ def loop_backtest(
     # plot
     plt.plot(
         result["trade_date"],
-        result["strategy"].cum_sum(),
+        (result["strategy"]+1).cum_prod(),
         label="strategy"
     )
     plt.plot(
         result["trade_date"],
-        result["benchmark"].cum_sum(),
+        (result["benchmark"]+1).cum_prod(),
         label="benchmark"
     )
     plt.plot(
         result["trade_date"],
-        result["er"].cum_sum(),
+        (result["er"]+1).cum_prod(),
         label="excess_return"
     )
     plt.ylabel(
