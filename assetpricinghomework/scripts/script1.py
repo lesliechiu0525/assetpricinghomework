@@ -74,7 +74,10 @@ def filter_pool(
     factors = factors.sort(
         "trade_date",
     ).with_columns(
-        y=(pl.col("close").shift(-1) / pl.col("close") - 1).over("ts_code")
+        y=(pl.col("close").shift(-1) / pl.col("close") - 1).over("ts_code"),
+        y25=(pl.col("close").shift(-25) / pl.col("close") - 1).over("ts_code")
+    ).drop_nulls(
+        subset=["y","y25"]
     )
     if mode == "big":
         factors = factors.filter(
