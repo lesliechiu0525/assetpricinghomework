@@ -134,18 +134,37 @@ def loop_backtest(
     )
     start_date,end_date = kline['trade_date'].min(),kline['trade_date'].max()
     result = []
+    pool = pl.DataFrame({})
     for date,cs in kline.group_by("trade_date",maintain_order=True):
-        pool = cs.sort(first_step["factor"],descending=first_step["descending"]).head(first_step["num_symbol"])
-        pool = pool.sort(second_step["factor"], descending=second_step["descending"]).head(second_step["num_symbol"])
-        pool = pool.sort(third_step["factor"], descending=third_step["descending"]).head(third_step["num_symbol"])
+        if pool.is_empty():
+            pool = cs.sort(first_step["factor"],descending=first_step["descending"]).head(first_step["num_symbol"])
+            pool = pool.sort(second_step["factor"], descending=second_step["descending"]).head(second_step["num_symbol"])
+            pool = pool.sort(third_step["factor"], descending=third_step["descending"]).head(third_step["num_symbol"])
+        else:
+            if cs['trade_date'].dt.month().max() != pool['trade_date'].dt.month().max():
+                # 定义为换仓日
+                pool = cs.sort(first_step["factor"], descending=first_step["descending"]).head(first_step["num_symbol"])
+                pool = pool.sort(second_step["factor"], descending=second_step["descending"]).head(second_step["num_symbol"])
+                pool = pool.sort(third_step["factor"], descending=third_step["descending"]).head(third_step["num_symbol"])
+            else:
+                pass # 不换仓
+        strategy_rtn = pool.select(
+            pl.exclude("y")
+        ).join(
+            cs.select(
+                ["ts_code","y"]
+            ),
+            on="ts_code",
+            how="left",
+        )['y'].mean()
         if index_filter:
-            benchmark_rtn = pool['index_rtn'].mean()
+            benchmark_rtn = cs['index_rtn'].mean()
         else:
             benchmark_rtn = cs['y'].mean()
         result.append(
             {
                 "trade_date": date[0],
-                "strategy": pool['y'].mean(),
+                "strategy": strategy_rtn,
                 "benchmark": benchmark_rtn,
             }
         )
@@ -159,17 +178,17 @@ def loop_backtest(
     # plot
     plt.plot(
         result["trade_date"],
-        (result["strategy"]+1).cum_prod(),
+        (result["strategy"]+1).cum_prod()-1,
         label="strategy"
     )
     plt.plot(
         result["trade_date"],
-        (result["benchmark"]+1).cum_prod(),
+        (result["benchmark"]+1).cum_prod()-1,
         label="benchmark"
     )
     plt.plot(
         result["trade_date"],
-        (result["er"]+1).cum_prod(),
+        (result["er"]+1).cum_prod()-1,
         label="excess_return"
     )
     plt.ylabel(
